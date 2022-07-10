@@ -15,11 +15,9 @@ public interface ElevatorRepository extends JpaRepository<Elevator, Integer>
 
 	Iterable<Elevator> findByHotelId(Integer hotelId);  
 	
-	//update elevator set current_floor = 1  where elevator_id = 1;
 	@Modifying
 	@Query("update Elevator e set e.currentFloor = :floor where e.elevatorId = :id")
-	int setCurrentFloorForElevator(@Param(value = "floor") int floor, @Param(value = "id") int id);
-	
+	int setCurrentFloorForElevator(@Param(value = "floor") int floor,@Param(value = "id") int id);
 	
 
 }  

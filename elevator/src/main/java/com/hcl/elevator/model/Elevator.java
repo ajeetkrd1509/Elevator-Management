@@ -19,7 +19,7 @@ public class Elevator  {
 	private Integer hotelId;
 	@Column
 	private Integer currentFloor;
-
+	@Column	
 	private Integer numberOfFloors;
 	@Column
 	@ElementCollection(targetClass = Integer.class)
@@ -41,14 +41,17 @@ public class Elevator  {
 		this.hotelId = hotelId;
 		this.currentFloor = currentFloor;
 		this.destinationFloors = new HashSet<Integer>();
+		this.pickupLocations= new HashSet<Integer>();
 	}
 
+	
 	public Elevator(Integer elevatorId, Integer hotelId, Integer currentFloor, Integer numberOfFloors) {
 		this.elevatorId = elevatorId;
 		this.hotelId = hotelId;
 		this.currentFloor = currentFloor;
 		this.numberOfFloors = numberOfFloors;
 		this.destinationFloors = new HashSet<Integer>();
+		this.pickupLocations= new HashSet<Integer>();
 	}
 
 	public Elevator() {
@@ -92,7 +95,6 @@ public class Elevator  {
 		return this;
 	}
 	
-
 	public Set<Integer> getDestinationFloors() {
 		return destinationFloors;
 	}
@@ -109,34 +111,4 @@ public class Elevator  {
 		return this.currentFloor;
 	}
 
-	public void popDestination(Integer elevatorId, Integer hotelId) {
-		this.destinationFloors.iterator().remove();
-	}
-
-	public void addNewDestinatoin(Integer elevatorId, Integer hotelId, Integer destination) {
-		this.destinationFloors.add(destination);
-	}
-
-	public void moveUp(Integer elevatorId, Integer hotelId) {
-		currentFloor++;
-	}
-
-	public void moveDown(Integer elevatorId, Integer hotelId) {
-		currentFloor--;
-	}
-
-	public ElevatorDirection direction() {
-		if (destinationFloors.size() > 0) {
-			if (currentFloor < destinationFloors.iterator().next()) {
-				return ElevatorDirection.ELEVATOR_UP;
-			} else if (currentFloor > destinationFloors.iterator().next()) {
-				return ElevatorDirection.ELEVATOR_DOWN;
-			}
-		}
-		return ElevatorDirection.ELEVATOR_HOLD;
-	}
-
-	public ElevatorStatus status() {
-		return (destinationFloors.size() > 0) ? ElevatorStatus.ELEVATOR_OCCUPIED : ElevatorStatus.ELEVATOR_EMPTY;
-	}
 }

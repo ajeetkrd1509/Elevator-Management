@@ -4,13 +4,14 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,12 +27,22 @@ public class ElevatorController {
 	ElevatorService elevatorService;
 	@Autowired
 	DestinationService destinationService;
+	
+	@Value("${app.elevator.accesscode}")
+	String elevator_accesscode;
+	@Value("${app.elevator.security.validation.failed.msg}")
+	String security_validation_failed_msg;
+	@Value("${app.elevator.security.validation.pass.msg}")
+	String security_validation_pass_msg;
+	
+	@Value("${app.elevator.private}")
+	private List<String> privateElevatorList;
 
 	@GetMapping("/elevator")
 	private List<Elevator> getAllElevator() {
 		return elevatorService.getAllElevator();
 	}
-	
+
 	@GetMapping("/destination")
 	private List<Destination> getAllDestination() {
 		return destinationService.getAllDestination();
@@ -46,6 +57,7 @@ public class ElevatorController {
 	private List<Elevator> getHotel(@PathVariable("id") int id) {
 		return elevatorService.getAllHotelById(id);
 	}
+
 	@DeleteMapping("/elevator/{id}")
 	private void deleteElevator(@PathVariable("id") int id) {
 		elevatorService.delete(id);
@@ -53,32 +65,46 @@ public class ElevatorController {
 
 	@PostMapping("/elevator")
 	private int saveElevator(@RequestBody Elevator elevator) {
-		elevatorService.saveOrUpdate(elevator);
+		elevatorService.save(elevator);
 		return elevator.getElevatorId();
 	}
-	
+
 	@PutMapping("/elevator/pickup")
-	private int pickup(@RequestBody Elevator elevator) {
-		elevatorService.saveOrUpdate(elevator);
+	private String pickup(@RequestBody Elevator elevator, @RequestHeader("accessCode") String accessCode) {
+		if (securityCheck(elevator, accessCode) == -1) {
+			return security_validation_failed_msg;
+		}
+		elevatorService.save(elevator);
 		int pickupLocation = elevator.getPickupLocations().iterator().next();
-		elevatorService.updateCurrentFloor(pickupLocation,elevator.getElevatorId());
-		return elevator.getElevatorId();
+		elevatorService.updateFloors(pickupLocation, elevator);
+		return security_validation_pass_msg;
 	}
-	
+
 	@PutMapping("/elevator/destination")
-	private int addDestination(@RequestBody Elevator elevator) {
-		elevatorService.saveOrUpdate(elevator);
+	private String addDestination(@RequestBody Elevator elevator, @RequestHeader("accessCode") String accessCode) {
+		if (securityCheck(elevator, accessCode) == -1) {
+			return security_validation_failed_msg;
+		}
+		elevatorService.save(elevator);
 		int pickupLocation = elevator.getDestinationFloors().iterator().next();
-		elevator.updateCurrentFloor(pickupLocation);
-		elevatorService.updateCurrentFloor(pickupLocation,elevator.getElevatorId());
-		destinationService.save(new Destination(elevator.getHotelId(),elevator.getElevatorId(),elevator.getDestinationFloors().iterator().next()));
-		return elevator.getElevatorId();
-	}
-		
-	@PostMapping("/newElevator")
-	private int addNewHotelElevator(@RequestBody Elevator elevator, @DefaultValue("1") @RequestParam Optional<Integer> numberOfElevators) throws InvalidNumber {
-		elevatorService.addElevator(elevator, numberOfElevators.get());
-		return elevator.getElevatorId();
+		elevatorService.updateFloors(pickupLocation, elevator);
+		destinationService.save(new Destination(elevator.getHotelId(), elevator.getElevatorId(),
+				elevator.getDestinationFloors().iterator().next()));
+		return security_validation_pass_msg;
 	}
 	
+	private int securityCheck(Elevator elevator, String accessCode) {
+		if (privateElevatorList.contains(elevator.getElevatorId().toString())) {
+			if (!accessCode.equals(elevator_accesscode)) {
+				return -1;
+			}
+		}
+		return 0;
+	}
+	@PostMapping("/newElevator")
+	private String addNewHotelElevator(@RequestBody Elevator elevator,
+			@RequestParam(defaultValue = "1") Optional<Integer> numberOfElevators) throws InvalidNumber {
+		return elevatorService.addElevator(elevator, numberOfElevators.get());
+	}
+
 }
